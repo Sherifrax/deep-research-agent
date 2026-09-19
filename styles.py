@@ -15,10 +15,14 @@ HEADER_HTML = """
         <h1>Deep<span class="dr-sep">/</span>Research</h1>
         <p>Multi-search web investigation</p>
     </div>
+    <button type="button" id="dr-theme-toggle" class="dr-theme-toggle"
+        onclick="window.drToggleTheme && window.drToggleTheme()" aria-label="Toggle dark mode">🌙</button>
 </div>
 """
 
 CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&display=swap');
+
 .gradio-container {
     --dr-bg: #fafaf7;
     --dr-surface: #ffffff;
@@ -55,12 +59,32 @@ body { background: var(--dr-bg, #fafaf7); }
 /* === HEADER === */
 .dr-brand {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 1.4rem;
     padding-bottom: 1.25rem;
     border-bottom: 3px solid var(--dr-line);
     margin-bottom: 2.5rem;
+}
+
+.dr-theme-toggle {
+    justify-self: end;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--dr-surface);
+    border: 2px solid var(--dr-line);
+    border-radius: 0;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+}
+
+.dr-theme-toggle:hover {
+    background: var(--dr-amber);
+    transform: rotate(15deg);
 }
 
 .dr-mark {
@@ -76,6 +100,7 @@ body { background: var(--dr-bg, #fafaf7); }
 .dr-bar-3 { background: var(--dr-purple); width: 45%;  }
 
 .dr-titles h1 {
+    font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: clamp(1.8rem, 4vw, 2.6rem);
     font-weight: 900;
     letter-spacing: -0.045em;
@@ -146,12 +171,13 @@ body { background: var(--dr-bg, #fafaf7); }
     border: 2px solid var(--dr-line) !important;
     border-left: none !important;
     border-radius: 0 !important;
+    font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.14em !important;
     font-size: 0.85rem !important;
     box-shadow: none !important;
-    transition: background 0.15s, color 0.15s, transform 0.08s !important;
+    transition: background 0.15s, color 0.15s, transform 0.08s, opacity 0.15s !important;
     min-width: 150px !important;
     padding: 1rem 1.5rem !important;
 }
@@ -162,6 +188,12 @@ body { background: var(--dr-bg, #fafaf7); }
 }
 
 #dr-run:active { transform: translate(2px, 2px) !important; }
+
+#dr-run:disabled {
+    opacity: 0.7 !important;
+    cursor: progress !important;
+    transform: none !important;
+}
 
 /* === EXAMPLES === */
 .dr-examples-label {
@@ -234,6 +266,97 @@ body { background: var(--dr-bg, #fafaf7); }
     transform: translateY(-1px);
 }
 
+/* === STATUS / PROGRESS === */
+#dr-status:empty { display: none; }
+
+.dr-status {
+    margin-top: 1.75rem;
+    animation: dr-fade-in 0.3s ease;
+}
+
+.dr-status-error {
+    color: #c0392b;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.85rem;
+}
+
+.dr-steps {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.85rem;
+}
+
+.dr-step {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex: 1;
+}
+
+.dr-step:not(:last-child)::after {
+    content: "";
+    flex: 1;
+    height: 2px;
+    margin: 0 0.6rem;
+    background: var(--dr-line-soft);
+    transition: background 0.25s;
+}
+
+.dr-step.done:not(:last-child)::after { background: var(--dr-blue); }
+
+.dr-step-dot {
+    flex-shrink: 0;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2px solid var(--dr-line-soft);
+    background: var(--dr-surface);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.dr-step.done .dr-step-dot {
+    border-color: var(--dr-blue);
+    background: var(--dr-blue);
+}
+
+.dr-step.active .dr-step-dot {
+    border-color: var(--dr-blue);
+    background: var(--dr-blue);
+    animation: dr-pulse 1.2s ease-in-out infinite;
+}
+
+.dr-step-label {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dr-muted);
+    white-space: nowrap;
+}
+
+.dr-step.active .dr-step-label,
+.dr-step.done .dr-step-label { color: var(--dr-text); }
+
+.dr-status-msg {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.85rem;
+    color: var(--dr-muted);
+}
+
+@keyframes dr-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(32, 157, 215, 0.45); }
+    50% { box-shadow: 0 0 0 6px rgba(32, 157, 215, 0); }
+}
+
+@keyframes dr-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 700px) {
+    .dr-step-label { display: none; }
+}
+
 /* === REPORT === */
 #dr-report {
     margin-top: 2.5rem !important;
@@ -253,6 +376,7 @@ body { background: var(--dr-bg, #fafaf7); }
 #dr-report:not(:empty) {
     border-top: 1px solid var(--dr-line-soft) !important;
     padding-top: 1.75rem !important;
+    animation: dr-fade-in 0.4s ease;
 }
 
 #dr-report h1 {
@@ -349,6 +473,25 @@ footer { display: none !important; }
 
 JS = """
 () => {
+    const THEME_KEY = "dr-theme";
+    const root = document.documentElement;
+
+    const applyTheme = (mode) => {
+        root.classList.toggle("dark", mode === "dark");
+        const toggle = document.getElementById("dr-theme-toggle");
+        if (toggle) toggle.textContent = mode === "dark" ? "☀️" : "🌙";
+    };
+
+    const stored = localStorage.getItem(THEME_KEY);
+    const preferred = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    applyTheme(preferred);
+
+    window.drToggleTheme = () => {
+        const next = root.classList.contains("dark") ? "light" : "dark";
+        localStorage.setItem(THEME_KEY, next);
+        applyTheme(next);
+    };
+
     const focus = () => {
         const el = document.querySelector("#dr-query textarea, #dr-query input");
         if (el) { el.focus(); return true; }
