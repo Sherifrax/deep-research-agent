@@ -19,6 +19,8 @@ HEADER_HTML = """
 """
 
 CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&display=swap');
+
 .gradio-container {
     --dr-bg: #fafaf7;
     --dr-surface: #ffffff;
@@ -53,15 +55,43 @@ html.dark .gradio-container {
 body { background: var(--dr-bg, #fafaf7); }
 
 /* === HEADER === */
+.dr-header-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 1rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 3px solid var(--dr-line);
+    margin-bottom: 2.5rem;
+}
+
 .dr-brand {
     display: grid;
     grid-template-columns: auto 1fr;
     align-items: center;
     gap: 1.4rem;
-    padding-bottom: 1.25rem;
-    border-bottom: 3px solid var(--dr-line);
-    margin-bottom: 2.5rem;
 }
+
+.dr-theme-toggle {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--dr-surface);
+    border: 2px solid var(--dr-line);
+    color: var(--dr-text);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.08s;
+}
+
+.dr-theme-toggle:hover { background: var(--dr-amber); }
+.dr-theme-toggle:active { transform: translate(1px, 1px); }
+
+.dr-theme-icon { font-size: 1.1rem; line-height: 1; }
+.dr-theme-icon::before { content: "\\2600"; }
+.dark .dr-theme-icon::before, html.dark .dr-theme-icon::before { content: "\\1F319"; }
 
 .dr-mark {
     display: flex;
@@ -76,6 +106,7 @@ body { background: var(--dr-bg, #fafaf7); }
 .dr-bar-3 { background: var(--dr-purple); width: 45%;  }
 
 .dr-titles h1 {
+    font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: clamp(1.8rem, 4vw, 2.6rem);
     font-weight: 900;
     letter-spacing: -0.045em;
@@ -146,22 +177,78 @@ body { background: var(--dr-bg, #fafaf7); }
     border: 2px solid var(--dr-line) !important;
     border-left: none !important;
     border-radius: 0 !important;
+    font-family: "Space Grotesk", inherit !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.14em !important;
     font-size: 0.85rem !important;
     box-shadow: none !important;
-    transition: background 0.15s, color 0.15s, transform 0.08s !important;
+    transition: background 0.15s, color 0.15s, transform 0.08s, opacity 0.15s !important;
     min-width: 150px !important;
     padding: 1rem 1.5rem !important;
 }
 
-#dr-run:hover {
+#dr-run:hover:not(:disabled) {
     background: var(--dr-purple) !important;
     color: #ffffff !important;
 }
 
-#dr-run:active { transform: translate(2px, 2px) !important; }
+#dr-run:active:not(:disabled) { transform: translate(2px, 2px) !important; }
+
+#dr-run:disabled {
+    opacity: 0.7 !important;
+    cursor: progress !important;
+}
+
+/* === STEPPER === */
+#dr-stepper-wrap:empty { display: none !important; }
+
+.dr-stepper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.75rem;
+    margin-top: 1.75rem;
+    animation: dr-fade-in 0.25s ease-out;
+}
+
+.dr-step {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--dr-muted);
+}
+
+.dr-step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--dr-line-soft);
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.dr-step-done { color: var(--dr-text); }
+.dr-step-done .dr-step-dot {
+    background: var(--dr-blue);
+    border-color: var(--dr-blue);
+}
+
+.dr-step-active { color: var(--dr-text); }
+.dr-step-active .dr-step-dot {
+    background: var(--dr-amber);
+    border-color: var(--dr-amber);
+    animation: dr-pulse 1.1s ease-in-out infinite;
+}
+
+.dr-step-error { color: #d94b4b; }
+.dr-step-error .dr-step-dot {
+    background: #d94b4b;
+    border-color: #d94b4b;
+}
 
 /* === EXAMPLES === */
 .dr-examples-label {
@@ -243,6 +330,18 @@ body { background: var(--dr-bg, #fafaf7); }
     box-shadow: none !important;
     color: var(--dr-text) !important;
     min-height: 40px;
+}
+
+#dr-report:not(:empty) { animation: dr-fade-in 0.35s ease-out; }
+
+@keyframes dr-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dr-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.35); opacity: 0.6; }
 }
 
 #dr-report > div, #dr-report .prose {
@@ -344,11 +443,26 @@ footer { display: none !important; }
         border-top: none !important;
         width: 100% !important;
     }
+    .dr-stepper { gap: 1rem; }
 }
 """
 
 JS = """
 () => {
+    const applyTheme = (theme) => {
+        document.documentElement.classList.toggle("dark", theme === "dark");
+    };
+
+    const stored = localStorage.getItem("dr-theme");
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(stored || (prefersDark ? "dark" : "light"));
+
+    window.drToggleTheme = () => {
+        const next = document.documentElement.classList.contains("dark") ? "light" : "dark";
+        applyTheme(next);
+        localStorage.setItem("dr-theme", next);
+    };
+
     const focus = () => {
         const el = document.querySelector("#dr-query textarea, #dr-query input");
         if (el) { el.focus(); return true; }

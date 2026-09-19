@@ -6,8 +6,8 @@ load_dotenv(override=True)
 
 
 async def run(query: str):
-    async for status_update in ResearchManager().run(query):
-        yield status_update
+    async for update in ResearchManager().run(query):
+        yield update.message
 
 
 with gr.Blocks() as ui:
