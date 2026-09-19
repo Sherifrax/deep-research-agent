@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from typing import Literal, Optional
 from agents import Runner, trace, gen_trace_id
 from search_agent import search_agent
 from planner_agent import planner_agent, WebSearchItem, WebSearchPlan
@@ -5,22 +7,41 @@ from writer_agent import writer_agent, ReportData
 from email_agent import email_agent
 import asyncio
 
+Stage = Literal["plan", "search", "write", "deliver"]
+
+
+@dataclass
+class ResearchUpdate:
+    """A single event emitted while a research run is in progress."""
+    kind: Literal["status", "report"]
+    message: str
+    stage: Optional[Stage] = None
+
+
 class ResearchManager:
 
     async def run(self, query: str):
-        """ Run the deep research process, yielding the status updates and the final report"""
+        """ Run the deep research process, yielding status updates and the final report """
         trace_id = gen_trace_id()
         with trace("Research trace", trace_id=trace_id):
-            yield f"Starting research. Trace: https://platform.openai.com/traces/trace?trace_id={trace_id}"
+            yield ResearchUpdate(
+                "status",
+                f"Starting research. Trace: https://platform.openai.com/traces/trace?trace_id={trace_id}",
+                stage="plan",
+            )
             search_plan = await self.plan_searches(query)
-            yield f"Searches planned, starting {len(search_plan.searches)} searches..."     
+            yield ResearchUpdate(
+                "status",
+                f"Searches planned, starting {len(search_plan.searches)} searches...",
+                stage="search",
+            )
             search_results = await self.perform_searches(search_plan)
-            yield "Searches complete, writing report..."
+            yield ResearchUpdate("status", "Searches complete, writing report...", stage="write")
             report = await self.write_report(query, search_results)
-            yield "Report written, sending email..."
+            yield ResearchUpdate("status", "Report written, sending email...", stage="deliver")
             await self.send_email(report)
-            yield "Email sent, research complete"
-            yield report.markdown_report
+            yield ResearchUpdate("status", "Email sent, research complete", stage="deliver")
+            yield ResearchUpdate("report", report.markdown_report)
 
     async def plan_searches(self, query: str) -> WebSearchPlan:
         """ Plan the searches to perform for the query """
